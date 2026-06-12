@@ -34,7 +34,7 @@
     <!-- Intro banner -->
     <div class="intro-banner" id="introBanner">
       <div class="intro-banner-title">Bienvenido al Atlas</div>
-      <div class="intro-banner-text">Haz clic en cualquier marcador rojo para explorar expediciones antropológicas. Usa el menú lateral derecho para filtrar estado o antropólogo.</div>
+      <div class="intro-banner-text">Haz clic en cualquier marcador verde para explorar expediciones antropológicas y cualquier otro punto de interés. Usa el menú lateral derecho para filtrar estado o antropólogo.</div>
       <div class="intro-dismiss" onclick="dismissBanner()">Entendido, explorar el mapa</div>
     </div>
 
@@ -213,7 +213,7 @@
     </div>
 
     <!-- Credit -->
-    <div class="map-credit">Atlas Antropológico de México © 2025</div>
+    <div class="map-credit">Atlas Antropológico de México © 2026</div>
   </div>
 
   <!-- INFO PANEL (left side of right nav) -->
@@ -247,8 +247,24 @@
           <div class="meta-value" id="panelGroup">—</div>
         </div>
       </div>
+     <!-- Descripción original -->
       <div class="panel-desc" id="panelDesc"></div>
+
+      <!-- NUEVO: Sección de Opinión (Oculta por defecto) -->
+      <div id="panelOpinionSection" style="display: none; margin-bottom: 20px;">
+        <div class="collection-title" style="color: var(--highlight-green);">Nuestra Opinión / Análisis</div>
+        <div id="panelOpinion" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-main); font-style: italic; border-left: 3px solid var(--highlight-green); padding-left: 10px; margin-top: 8px;"></div>
+      </div>
+
+      <!-- NUEVO: Sección de Cómic (Oculta por defecto) -->
+      <div id="panelComicSection" style="display: none; margin-bottom: 20px;">
+        <div class="collection-title" style="color: var(--highlight-green);">Ilustración de la situación</div>
+        <img id="panelComicImg" src="" alt="Cómic" style="width: 100%; border-radius: 6px; border: 1px solid var(--border-light); margin-top: 8px;">
+      </div>
+      
+      <!-- Colección original -->
       <div class="panel-collection" id="panelCollection"></div>
+  
     </div>
   </div>
 

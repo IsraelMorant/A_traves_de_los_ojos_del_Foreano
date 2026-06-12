@@ -35,21 +35,50 @@ document.getElementById('admin-form').addEventListener('submit', async (e) => {
   
   // Cambiamos el texto del botón para que el usuario sepa que está cargando
   const submitBtn = document.querySelector('.btn-submit');
-  submitBtn.textContent = "Guardando expedición y subiendo fotos...";
+  submitBtn.textContent = "Guardando expedición, cómic y fotos...";
   submitBtn.disabled = true;
 
-  const nuevaExpedicion = {
-    titulo: document.getElementById('titulo').value,
-    id_antropologo: parseInt(document.getElementById('id_antropologo').value),
-    id_estado: document.getElementById('id_estado').value,
-    anio: document.getElementById('anio').value,
-    duracion: document.getElementById('duracion').value,
-    grupo_etnico: document.getElementById('grupo_etnico').value,
-    descripcion: document.getElementById('descripcion').value
-  };
-
   try {
-    // 1. Insertar expedición y pedirle a Supabase que nos devuelva el ID generado (.select())
+    // =====================================
+    // A. SUBIR EL CÓMIC AL BUCKET 'galeria'
+    // =====================================
+    const comicInput = document.getElementById('comic');
+    let comicUrl = null;
+
+    if (comicInput.files.length > 0) {
+      const comicFile = comicInput.files[0];
+      const comicName = `comic_${Date.now()}_${comicFile.name.replace(/\s+/g, '_')}`;
+      
+      const { error: comicUploadError } = await supabase.storage
+        .from('galeria') 
+        .upload(comicName, comicFile);
+
+      if (comicUploadError) throw comicUploadError;
+
+      const { data: comicUrlData } = supabase.storage
+        .from('galeria')
+        .getPublicUrl(comicName);
+
+      comicUrl = comicUrlData.publicUrl;
+    }
+
+    // =====================================
+    // B. INSERTAR LA EXPEDICIÓN CON OPINIÓN Y CÓMIC
+    // =====================================
+    const opinionInput = document.getElementById('opinion');
+
+    const nuevaExpedicion = {
+      titulo: document.getElementById('titulo').value,
+      id_antropologo: parseInt(document.getElementById('id_antropologo').value),
+      id_estado: document.getElementById('id_estado').value,
+      anio: document.getElementById('anio').value,
+      duracion: document.getElementById('duracion').value,
+      grupo_etnico: document.getElementById('grupo_etnico').value,
+      descripcion: document.getElementById('descripcion').value,
+      opinion: opinionInput ? opinionInput.value : '', // Guardamos la opinión
+      url_comic: comicUrl // Guardamos el link del cómic
+    };
+
     const { data: expData, error: expError } = await supabase
       .from('expediciones')
       .insert([nuevaExpedicion])
@@ -58,33 +87,34 @@ document.getElementById('admin-form').addEventListener('submit', async (e) => {
     if (expError) throw expError;
     const nuevaExpedicionId = expData[0].id_expedicion;
 
-    // 2. Subir las imágenes (si el usuario seleccionó alguna)
+    // =====================================
+    // C. SUBIR FOTOS HISTÓRICAS
+    // =====================================
     const files = document.getElementById('imagenes_upload').files;
     
     for (const file of files) {
-      // Crear un nombre único para que no choquen si se llaman igual
       const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
       
-      // Subir al bucket 'galeria'
       const { error: uploadError } = await supabase.storage
         .from('galeria')
         .upload(fileName, file);
         
       if (uploadError) throw uploadError;
 
-      // Obtener la URL pública de la imagen
       const { data: urlData } = supabase.storage
         .from('galeria')
         .getPublicUrl(fileName);
 
-      // 3. Guardar la URL en la tabla objetos_coleccion
       await supabase.from('objetos_coleccion').insert([
         { id_expedicion: nuevaExpedicionId, icono: urlData.publicUrl }
       ]);
     }
 
-    alert("¡Expedición y fotografías guardadas con éxito!");
+    alert("¡Expedición, cómic y fotografías guardadas con éxito!");
     document.getElementById('admin-form').reset();
+    
+    // Regresamos al mapa automáticamente
+    window.location.href = '/index.html';
     
   } catch (error) {
     alert("Hubo un error: " + error.message);
@@ -94,5 +124,6 @@ document.getElementById('admin-form').addEventListener('submit', async (e) => {
     submitBtn.disabled = false;
   }
 });
+
 // Inicializar
 document.addEventListener('DOMContentLoaded', loadSelectOptions);

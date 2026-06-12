@@ -20,24 +20,74 @@ let mapScale = 1;
 let mapX = 0, mapY = 0;
 let isDragging = false;
 let dragStart = { x: 0, y: 0 };
+let scrapedImages = [];
 
 const modalContents = {
   antropologos: {
     title: "Antropólogos",
     body: () => {
-      const list = [...new Set(expeditions.map(e => e.anthropologist))];
-      if (list.length === 0) return `<div style="color:var(--beaver);font-size:0.8rem;">Esperando datos...</div>`;
+      const uniqueAntrops = [];
+      const map = new Map();
+      expeditions.forEach(exp => {
+        if(!map.has(exp.anthropologist)){
+          map.set(exp.anthropologist, true);
+          uniqueAntrops.push({
+            name: exp.anthropologist,
+            bio: exp.anthropologistBio,
+            url: exp.anthropologistUrl,
+            img: exp.anthropologistImg // Pasamos la imagen a la tarjeta
+          });
+        }
+      });
+
+      if (uniqueAntrops.length === 0) return `<div style="color:var(--beaver);font-size:0.8rem;">Esperando datos...</div>`;
+
       return `<div style="display:flex;flex-direction:column;gap:12px">` +
-        list.map(name => {
-          const exps = expeditions.filter(e => e.anthropologist === name);
-          return `<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer"
-            onclick="selectExpedition(${exps[0].id});closeModal()">
-            <div style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark-vanilla);margin-bottom:4px">${name}</div>
-            <div style="font-size:0.72rem;color:var(--beaver)">${exps.map(e=>e.state).join(' · ')} &nbsp;|&nbsp; ${exps[0].tag}</div>
-          </div>`;
+        uniqueAntrops.map(ant => {
+          const exps = expeditions.filter(e => e.anthropologist === ant.name);
+          const uniqueStates = [...new Set(exps.map(e => e.state))];
+
+          // 1. DIBUJAMOS LA FOTO O UN EMOJI POR DEFECTO
+          const fotoHtml = ant.img 
+            ? `<div style="width: 48px; height: 48px; border-radius: 50%; background-image: url('${ant.img}'); background-size: cover; background-position: center; flex-shrink: 0; border: 2px solid var(--border);"></div>`
+            : `<div style="width: 48px; height: 48px; border-radius: 50%; background: var(--quincy); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">👤</div>`;
+
+          // 2. DIBUJAMOS EL ACORDEÓN DE LA BIOGRAFÍA
+          const bioHtml = ant.bio ? `
+            <details style="margin-top: 14px; font-size: 0.8rem; color: var(--dark-vanilla);">
+              <summary style="cursor: pointer; color: var(--beaver); user-select: none; font-weight: 500;">Leer biografía...</summary>
+              <div style="padding-top: 8px; line-height: 1.5; text-align: justify; opacity: 0.9;">
+                ${ant.bio}
+                ${ant.url ? `<br><a href="${ant.url}" target="_blank" style="color: #7C2220; text-decoration: underline; margin-top: 6px; display: inline-block;">Ver perfil del autor ↗</a>` : ''}
+              </div>
+            </details>
+          ` : '';
+
+          // 3. ARMAMOS LA TARJETA COMPLETA
+          return `
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+              <div style="display:flex; justify-content: space-between; align-items: center; gap: 10px;">
+                
+                <div style="display:flex; align-items: center; gap: 12px;">
+                  ${fotoHtml}
+                  <div>
+                    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--dark-vanilla);margin-bottom:4px">${ant.name}</div>
+                    <div style="font-size:0.75rem;color:var(--beaver)">${uniqueStates.join(' · ')} &nbsp;|&nbsp; ${exps.length} expediciones</div>
+                  </div>
+                </div>
+                
+                <button onclick="highlightAnthropologist('${ant.name}');closeModal()" 
+                        style="background: #7C2220; color: #F5EDE3; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: opacity 0.2s; white-space: nowrap;"
+                        onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                  Ver mapa
+                </button>
+              </div>
+              ${bioHtml}
+            </div>`;
         }).join('') + `</div>`;
     }
   },
+
   estados: {
     title: "Por Estado",
     body: () => {
@@ -54,16 +104,59 @@ const modalContents = {
   },
   imagenes: {
     title: "Galería de Imágenes",
-    body: () => `
-      <div style="margin-bottom:16px;font-size:0.8rem;color:var(--beaver);line-height:1.6">
-        Esta galería reúne fotografías históricas de las expediciones documentadas.
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-        ${Array.from({length:16}).map((_,i) => `
-          <div style="aspect-ratio:1;background:linear-gradient(135deg,var(--quincy),var(--philippine-brown));border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;cursor:pointer;transition:opacity 0.2s" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-            ${['📷','🏺','🗿','📜','🎭','🌿','🏛️','👤','🎨','📐','🧵','🌵','🎵','🦋','🌾','🏔️'][i]}
-          </div>`).join('')}
-      </div>`
+    body: () => {
+      let allFiles = [];
+
+      // 1. Fotos de la Base de Datos (Expediciones)
+      expeditions.forEach(exp => {
+        if (exp.collection && exp.collection.length > 0) {
+          exp.collection.forEach(item => {
+            allFiles.push({ url: item, expId: exp.id, title: exp.title, isScraped: false });
+          });
+        }
+      });
+
+      // 2. Fotos del Web Scraping (Las que trajimos del bucket)
+      allFiles = allFiles.concat(scrapedImages);
+
+      // 3. Dibujar la cuadrícula
+      if (allFiles.length === 0) {
+         return `<div style="color:var(--beaver);font-size:0.8rem;">Cargando fotografías históricas...</div>`;
+      }
+
+      return `
+        <div style="margin-bottom:16px;font-size:0.8rem;color:var(--beaver);line-height:1.6">
+          Esta galería reúne el archivo histórico del museo WERELD MUSEUM.
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          ${allFiles.map(file => {
+            
+            // Si es scraping -> Abre la foto en nueva pestaña. Si es BD -> Abre la expedición.
+            const clickAction = file.isScraped 
+              ? `onclick="window.open('${file.url}', '_blank')"` 
+              : `onclick="selectExpedition(${file.expId});closeModal()"`;
+              
+            const tooltipText = file.isScraped 
+              ? `Archivo recuperado: ${file.title}` 
+              : `Ver expedición: ${file.title}`;
+
+            if (file.url.startsWith('http')) {
+              return `
+                <div title="${tooltipText}" ${clickAction} 
+                     style="aspect-ratio:1; background-image:url('${file.url}'); background-size:cover; background-position:center; border:1px solid var(--border); border-radius:6px; cursor:pointer; transition:opacity 0.2s" 
+                     onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                </div>`;
+            } else {
+              return `
+                <div title="${tooltipText}" ${clickAction} 
+                     style="aspect-ratio:1; background:linear-gradient(135deg,var(--quincy),var(--philippine-brown)); border:1px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; cursor:pointer; transition:opacity 0.2s" 
+                     onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                  ${file.url}
+                </div>`;
+            }
+          }).join('')}
+        </div>`;
+    }
   },
   articulos: {
     title: "Artículos y Documentos",
@@ -89,8 +182,11 @@ const modalContents = {
       <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--dark-vanilla);margin-bottom:12px;line-height:1.4">
         Un mapa para recuperar la memoria etnográfica de México
       </div>
-      <div style="font-size:0.82rem;color:rgba(245,237,227,0.75);line-height:1.75;margin-bottom:20px">
-        Este atlas digitaliza y geolocaliza expediciones antropológicas realizadas en México entre 1880 y 1970.
+      <div style="font-size:0.82rem;color:#004D40;line-height:1.75;margin-bottom:20px">
+        Un mapa para visibilizar el trabajo antropológico y etnográfico realizado por extranjeros en México.
+
+Este atlas digitaliza y geolocaliza expediciones antropológicas en México. En este sitio encontrarás la bibliografía de los investigadores, sus hazañas principales, así como las fotografías que capturaron en sus travesías. El rango de años que se documenta son entre los años de 1880 y 1970. El propósito de este sitio, además de preservar el comienzo de la antropología en nuestro país, es invitar al espectador a formar un criterio sobre los estudios y metodologías de investigación llevadas a cabo por extranjeros en nuestro país. 
+En ayuda de las colecciones de Wereld Museum, que nos proporcionaron las fotografías hechas durante la labor etnográfica de cada antropólogo; además de Wikipedia y Wikidata, que nos brindaron la información.
       </div>`
   }
 };
@@ -252,15 +348,62 @@ function toggleFilterDrawer() {
 
 function toggleChip(el) {
   el.classList.toggle('active');
+  filterList(); //
 }
-
 function filterList() {
+  // 1. Obtenemos lo que se escribió en el buscador
   const q = document.getElementById('searchInput').value.toLowerCase();
+
+  // 2. Leemos los botones que están activos (usando la clase exacta de tu HTML)
+  const activeChips = Array.from(document.querySelectorAll('.filter-chip.active'))
+                           .map(chip => chip.textContent.trim());
+
+  // 3. Extraemos los rangos matemáticos (atrapando guiones normales y largos)
+  const activePeriods = activeChips.map(text => {
+     const parts = text.split(/[-–—]/); 
+     if(parts.length === 2 && !isNaN(parts[0])) {
+       return { start: parseInt(parts[0]), end: parseInt(parts[1]) };
+     }
+     return null;
+  }).filter(p => p !== null);
+
+  // 4. Revisamos cada expedición en la lista
   document.querySelectorAll('.expedition-list-item').forEach(item => {
     const text = item.textContent.toLowerCase();
-    item.style.display = text.includes(q) ? '' : 'none';
+    const matchesSearch = text.includes(q);
+    let matchesPeriod = true;
+
+    // Si hay algún filtro de periodo activado, hacemos la matemática
+    if (activePeriods.length > 0) {
+      const expId = parseInt(item.id.replace('eli-', ''));
+      const exp = expeditions.find(e => e.id === expId);
+
+      if (exp && exp.year) {
+         // Extraemos los años del texto (Si dice "1930-1934", saca [1930, 1934])
+         const expYears = exp.year.match(/\d{4}/g);
+         
+         if (expYears) {
+            const startYear = parseInt(expYears[0]);
+            // Si solo tiene un año, el inicio y el fin son el mismo
+            const endYear = expYears.length > 1 ? parseInt(expYears[1]) : startYear;
+
+            // Comprobamos si el año choca con AL MENOS UNO de los periodos seleccionados
+            matchesPeriod = activePeriods.some(period => {
+               return (startYear <= period.end && endYear >= period.start);
+            });
+         } else {
+            matchesPeriod = false; // Si pusieron "Desconocido", se oculta
+         }
+      } else {
+         matchesPeriod = false;
+      }
+    }
+
+    // Solo mostramos el elemento si pasa la prueba del texto Y la prueba de la fecha
+    item.style.display = (matchesSearch && matchesPeriod) ? '' : 'none';
   });
 }
+
 
 function closePanel() {
   document.getElementById('infoPanel').classList.remove('open');
@@ -270,16 +413,41 @@ function closePanel() {
   selectedExpedition = null;
 }
 
+
+function highlightAnthropologist(name) {
+  // 1. Cerramos el panel de información individual si estaba abierto
+  closePanel();
+
+  // 2. Extraemos los IDs de los estados donde trabajó este autor
+  const exps = expeditions.filter(e => e.anthropologist === name);
+  const stateIds = exps.map(e => e.stateId);
+
+  // 3. Iluminamos los estados correspondientes y oscurecemos el resto
+  document.querySelectorAll('.state-path').forEach(p => {
+    p.classList.remove('active', 'dimmed');
+    if (stateIds.includes(p.id)) {
+      p.classList.add('active');
+    } else {
+      p.classList.add('dimmed');
+    }
+  });
+
+  // 4. También "encendemos" los marcadores (puntitos) de esos estados
+  document.querySelectorAll('.expedition-marker').forEach(m => {
+    m.classList.remove('selected');
+    if (stateIds.includes(m.getAttribute('data-state'))) {
+      m.classList.add('selected');
+    }
+  });
+}
 function selectExpedition(id) {
   const exp = expeditions.find(e => e.id === id);
   if(!exp) return;
   selectedExpedition = id;
 
   document.querySelectorAll('.expedition-marker').forEach(m => m.classList.remove('selected'));
- // const marker = document.querySelector(`.expedition-marker[data-id="${id}"]`);
- 
-const marker = document.querySelector(`.expedition-marker[data-state="${exp.stateId}"]`); 
- if(marker) marker.classList.add('selected');
+  const marker = document.querySelector(`.expedition-marker[data-state="${exp.stateId}"]`); 
+  if(marker) marker.classList.add('selected');
 
   document.querySelectorAll('.state-path').forEach(p => {
     p.classList.remove('active', 'dimmed');
@@ -291,6 +459,7 @@ const marker = document.querySelector(`.expedition-marker[data-state="${exp.stat
   const eli = document.getElementById(`eli-${id}`);
   if (eli) eli.classList.add('active');
 
+  // Textos básicos
   document.getElementById('panelTag').textContent = exp.tag;
   document.getElementById('panelTitle').textContent = exp.title;
   document.getElementById('panelAnthropologist').textContent = exp.anthropologist;
@@ -300,31 +469,48 @@ const marker = document.querySelector(`.expedition-marker[data-state="${exp.stat
   document.getElementById('panelGroup').textContent = exp.group;
   document.getElementById('panelDesc').textContent = exp.desc;
 
+  // Lógica de OPINIÓN
+  const opinionSec = document.getElementById('panelOpinionSection');
+  if (exp.opinion && exp.opinion.trim() !== "") {
+    document.getElementById('panelOpinion').textContent = exp.opinion;
+    opinionSec.style.display = 'block'; 
+  } else {
+    opinionSec.style.display = 'none';  
+  }
+
+  // Lógica de CÓMIC
+  const comicSec = document.getElementById('panelComicSection');
+  const comicImg = document.getElementById('panelComicImg');
+  if (exp.comic && exp.comic.trim() !== "") {
+    comicImg.src = exp.comic;
+    comicSec.style.display = 'block'; 
+  } else {
+    comicSec.style.display = 'none';
+    comicImg.src = ""; // Limpiamos la imagen anterior por si acaso
+  }
+
   document.getElementById('panelPlaceholder').innerHTML = `
     <div style="text-align:center">
       <div style="font-size:4rem;margin-bottom:8px">${exp.emoji || '📍'}</div>
       <div style="font-size:0.65rem;color:var(--beaver);letter-spacing:.1em;text-transform:uppercase">${exp.state} · ${exp.year}</div>
     </div>`;
 
- document.getElementById('panelCollection').innerHTML = `
+  document.getElementById('panelCollection').innerHTML = `
     <div class="collection-title">Archivos de la expedición</div>
     <div class="collection-grid">
       ${exp.collection.map(item => {
-        // Si el texto empieza con "http", es una imagen subida
         if (item.startsWith('http')) {
           return `<div class="collection-thumb" title="Ver archivo" 
                        style="background-image: url('${item}'); background-size: cover; background-position: center; border: none;">
                   </div>`;
-        } 
-        // Si no, asumimos que es un emoji antiguo
-        else {
+        } else {
           return `<div class="collection-thumb" title="Ver objeto">${item}</div>`;
         }
       }).join('')}
     </div>`;
+    
   document.getElementById('infoPanel').classList.add('open');
 }
-
 function setupMapDrag() {
   const container = document.getElementById('mapContainer');
   if(!container) return;
@@ -393,7 +579,7 @@ function setupStateHovers() {
     path.addEventListener('mouseenter', (e) => {
       const name = path.getAttribute('data-name') || path.id;
       const exps = expeditions.filter(ex => ex.stateId === path.id);
-      showTooltip(e, name, exps.length > 0 ? `${exps.length} expedición${exps.length>1?'es':''}` : 'Sin expediciones registradas');
+      showTooltip(e, name, exps.length > 0 ? `${exps.length} expedición${exps.length>1?'es':''}` : 'Sin expediciones registradas.');
     });
     path.addEventListener('mousemove', moveTooltip);
     path.addEventListener('mouseleave', hideTooltip);
@@ -441,10 +627,43 @@ function buildExpeditionList() {
 // 3. CONEXIÓN A BASE DE DATOS (SUPABASE)
 // =========================================================
 
+
+async function fetchScrapedImages() {
+  try {
+    // Pedimos la lista de archivos en tu nuevo bucket (ajusta el nombre si le pusiste otro)
+    const { data, error } = await supabase.storage.from('scraping_historico').list('', {
+      limit: 500 // Ajusta este número si subieron más de 500 fotos
+    });
+
+    if (error) throw error;
+
+    // Filtramos para evitar archivos ocultos basura y generamos los URLs
+    const validFiles = data.filter(file => file.name !== '.emptyFolderPlaceholder');
+
+    scrapedImages = validFiles.map(file => {
+      // Pedimos la URL pública de cada archivo
+      const { data: urlData } = supabase.storage.from('scraping_historico').getPublicUrl(file.name);
+      
+      // Limpiamos el nombre del archivo para usarlo como título (quitamos guiones y la extensión .jpg)
+      const cleanTitle = file.name.replace(/[-_]/g, ' ').split('.')[0];
+
+      return {
+        url: urlData.publicUrl,
+        expId: null,
+        title: cleanTitle,
+        isScraped: true
+      };
+    });
+
+  } catch (error) {
+    console.error("Error cargando fotos del scraping:", error);
+  }
+}
+
 async function fetchDatabaseData() {
   try {
     // Ya no necesitamos validar window.supabase, porque lo importamos arriba
-    const { data, error } = await supabase
+  const { data, error } = await supabase
       .from('expediciones')
       .select(`
         id_expedicion,
@@ -453,8 +672,10 @@ async function fetchDatabaseData() {
         duracion,
         grupo_etnico,
         descripcion,
+        opinion,          
+        url_comic,        
         id_estado,
-        antropologos ( nombre ),
+        antropologos ( nombre, biografia, URL_Autor, URL_imagen ), 
         estados ( nombre ),
         objetos_coleccion ( icono )
       `);
@@ -466,6 +687,9 @@ async function fetchDatabaseData() {
       id: exp.id_expedicion,
       title: exp.titulo,
       anthropologist: exp.antropologos?.nombre || 'Desconocido',
+      anthropologistBio: exp.antropologos?.biografia || '', 
+      anthropologistUrl: exp.antropologos?.URL_Autor || '', 
+      anthropologistImg: exp.antropologos?.URL_imagen || '', // <--- AQUÍ CAPTURAMOS LA FOTO
       tag: "Etnografía",
       year: exp.anio,
       state: exp.estados?.nombre || 'Desconocido',
@@ -473,6 +697,8 @@ async function fetchDatabaseData() {
       group: exp.grupo_etnico,
       stateId: exp.id_estado,
       desc: exp.descripcion,
+      opinion: exp.opinion || '',      // ¡Asegúrate de tener esto!
+      comic: exp.url_comic || '',      // ¡Asegúrate de tener esto!
       emoji: "",
       collection: exp.objetos_coleccion ? exp.objetos_coleccion.map(obj => obj.icono) : []
     }));
@@ -481,7 +707,7 @@ async function fetchDatabaseData() {
     renderMapMarkers();     // 1. Dibuja los puntos exactos de la BD
     buildExpeditionList();  // 2. Llena la lista del buscador
     setupMarkerTooltips();  // 3. Le pone los nombres flotantes a los nuevos puntos
-
+    fetchScrapedImages();
     updateHeaderStats();    // 4.  ACTUALIZAMOS LOS NÚMEROS DEL HEADER
   } catch (error) {
     console.error("Error al conectar con la base de datos:", error);
@@ -528,5 +754,5 @@ window.toggleChip = toggleChip;
 window.filterList = filterList;
 window.closePanel = closePanel;
 window.selectExpedition = selectExpedition;
-
+window.highlightAnthropologist = highlightAnthropologist;
 

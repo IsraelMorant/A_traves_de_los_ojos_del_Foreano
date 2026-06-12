@@ -1,0 +1,165 @@
+/* ─── PALETTE OPTIMIZED FOR PROJECTORS (HIGH CONTRAST) ─── */
+:root {
+  --header-bg:        #004D40; /* Verde más oscuro de la paleta */
+  --nav-bg:           #006064; /* Azul oscuro */
+  --text-dark-bg:     #00838F; /* Turquesa oscuro */
+  --map-state-base:   #00796B; /* Esmeralda medio */
+  --map-state-hover:  #004D40;
+  --map-state-active: #006064;
+  --bg-glacial:       #0097A7; /* Fondo general turquesa */
+  --active-pill:      #2E7D32; /* Verde bosque */
+  --highlight-green:  #4CAF50; /* Verde brillante para focos */
+  --border-green:     #388E3C;
+  --text-main:        #004D40; /* Letras oscuras y nítidas */
+  --text-light:       #FFFFFF;
+  --card-bg:          #FFFFFF; /* Fondo del formulario rígido y puro */
+  --border-light:     #00695C; /* Bordes notorios */
+}
+
+/* ─── RESET & BASE MODIFICATIONS ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto !important;
+  display: block !important; 
+  padding-bottom: 60px;
+  background: var(--bg-glacial);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── CONTAINER FORM ─── */
+.admin-container {
+  max-width: 650px; /* Ancho ampliado para que respire horizontalmente */
+  margin: 50px auto;
+  background: var(--card-bg);
+  padding: 40px 45px; /* Espaciado interno generoso */
+  border: 2px solid var(--border-light); 
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); 
+}
+
+/* Título del Formulario */
+.admin-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--header-bg);
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* ─── INPUTS & LABELS RESPIRABLES ─── */
+.form-group { 
+  margin-bottom: 24px; /* Mayor separación vertical entre bloques */
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700; /* Letras gruesas para evitar desenfoque en pared */
+  color: var(--header-bg); 
+  margin-bottom: 10px; /* Separación de la caja de texto */
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.form-control {
+  width: 100%;
+  background: #FFFFFF; 
+  border: 2px solid var(--border-light); /* Línea nítida de 2px */
+  color: var(--text-main); 
+  padding: 12px 14px; /* Relleno amplio para centrar y airear el texto */
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Ajustes nativos para selects para mantener consistencia de padding */
+select.form-control {
+  height: 48px;
+}
+
+/* Textarea espacioso por defecto */
+textarea.form-control {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.form-control:focus { 
+  outline: none; 
+  border-color: var(--highlight-green); 
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15);
+}
+
+/* ─── SOLUCIÓN PARA CAMPOS EN LA MISMA FILA (AÑO Y DURACIÓN) ─── */
+.form-row {
+  display: flex;
+  gap: 24px; /* El espacio de separación real que evita que se encimen */
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.form-row .form-group {
+  flex: 1; /* Distribuye el espacio 50% y 50% exactamente */
+  margin-bottom: 0; 
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── BOTÓN DE ACCIÓN PRINCIPAL ─── */
+.btn-submit {
+  background: var(--header-bg); /* Sólido oscuro para máxima legibilidad tipográfica */
+  color: var(--text-light); 
+  border: none;
+  padding: 16px 24px; 
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: 100%;
+  margin-top: 15px;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+
+.btn-submit:hover { 
+  background: var(--nav-bg); 
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.2);
+}
+
+.btn-submit:active {
+  transform: scale(0.99);
+}
+
+/* ─── ENLACE DE RETORNO ─── */
+.back-link-container {
+  text-align: center;
+  width: 100%;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 15px;
+  color: var(--header-bg); 
+  text-decoration: none; 
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: var(--text-dark-bg);
+  text-decoration: underline;
+}
