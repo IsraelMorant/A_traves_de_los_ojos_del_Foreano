@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Atlas Antropológico</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+  <link href="estilos.css" rel="stylesheet">
+  <style>
+
+    
+    /* Sobreescribimos el overflow oculto del mapa para permitir el scroll aquí */
+html, body {
+      height: auto !important;
+      min-height: 100vh;
+      overflow-y: auto !important;
+      display: block !important; /* Quitamos el flexbox que aplasta el contenido */
+      padding-bottom: 40px;
+    }
+    /* Estilos extra específicos para el formulario */
+    .admin-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: var(--card-bg);
+      padding: 30px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--dark-vanilla);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-control {
+      width: 100%;
+      background: rgba(26, 15, 10, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-light);
+      padding: 10px;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+    }
+    .form-control:focus { outline: none; border-color: var(--dark-vanilla); }
+    .btn-submit {
+      background: var(--falu-red);
+      color: var(--dark-vanilla);
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+      transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.8; }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-bottom: 20px;
+      color: var(--beaver);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-container">
+    <a href="/" class="back-link">← Volver al Mapa</a>
+    <h2 class="panel-title" style="text-align: center; margin-bottom: 20px;">Registrar Expedición</h2>
+    
+    <form id="admin-form">
+      <div class="form-group">
+        <label>Título de la expedición</label>
+        <input type="text" id="titulo" class="form-control" required placeholder="Ej. Exploración Maya de Los Altos...">
+      </div>
+
+      <div class="form-group">
+        <label>Antropólogo</label>
+        <select id="id_antropologo" class="form-control" required>
+          <option value="">Cargando antropólogos...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Estado Principal</label>
+        <select id="id_estado" class="form-control" required>
+          <option value="">Cargando estados...</option>
+        </select>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div class="form-group">
+          <label>Año(s)</label>
+          <input type="text" id="anio" class="form-control" required placeholder="Ej. 1934-1935">
+        </div>
+        <div class="form-group">
+          <label>Duración</label>
+          <input type="text" id="duracion" class="form-control" placeholder="Ej. 2 años">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Grupo Étnico</label>
+        <input type="text" id="grupo_etnico" class="form-control" required placeholder="Ej. Tzotzil · Tzeltal">
+      </div>
+
+      <div class="form-group">
+        <label>Descripción y Hallazgos</label>
+        <textarea id="descripcion" class="form-control" rows="5" required placeholder="Copia aquí la biografía o el resumen de la expedición..."></textarea>
+    <div class="form-group">
+        <label>Fotografías Históricas</label>
+        <input type="file" id="imagenes_upload" class="form-control" accept="image/*" multiple>
+      </div>  
+    
+    </div>
+
+      <button type="submit" class="btn-submit">Guardar en la Base de Datos</button>
+    </form>
+  </div>
+
+  <script type="module" src="src/admin.js"></script>
+</body>
+</html>
