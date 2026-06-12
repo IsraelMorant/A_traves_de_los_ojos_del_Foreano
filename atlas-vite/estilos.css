@@ -900,3 +900,7 @@ header {
 
 /* ─── UTILITY ─────────────────────────────────────── */
 .hidden { display: none !important; }
+#panelComicImg:hover {
+  filter: brightness(0.9);
+  transition: filter 0.2s;
+}
